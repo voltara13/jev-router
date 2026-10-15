@@ -4,6 +4,7 @@ import type { EngineInterface, Register } from 'claude-code'
 import type { Cache, Decision, Effort, EffortCap, Mode, Pending, Ran, Savings, Sticky } from '../types'
 
 export const JEV_URL = 'https://api.typesafe.ai/v1/systemone'
+export const JEV_MODEL = 'jev-latest'
 const MODES: readonly Mode[] = ['efficient', 'balanced', 'cheap']
 const STICKY: readonly Sticky[] = ['off', 'auto', 'strict']
 const EFFORTS: readonly Effort[] = ['low', 'medium', 'high', 'xhigh', 'max']
@@ -66,7 +67,9 @@ type JevChoice = { choice?: string; confidence?: number }
 type JevReply = { answers?: { model?: JevChoice; effort?: JevChoice } }
 
 export type Config = {
-  apiKey: string
+  apiKey: string,
+  apiUrl?: string
+  jevModel?: string
   timeoutMs: number
   pool: string[]
   defaultMode: Mode
@@ -123,7 +126,7 @@ export function capEffort(effort: Effort, cap: EffortCap): { effort: Effort; cap
 // !full lifts the effort cap, !<model> pins the model (no Jev call), !cheap and !efficient pick the routing mode.
 export function markers(text: string, pool: readonly string[]): { text: string; pending: Pending | null } {
   const pending: Pending = {}
-  for (let m; (m = /^\s*!(full|cheap|efficient|[a-z]+)\b[ \t]*/i.exec(text)); ) {
+  for (let m; (m = /^\s*!(full|cheap|efficient|[a-z]+)\b[ \t]*/i.exec(text));) {
     const w = m[1]!.toLowerCase()
     if (w === 'full') pending.full = true
     else if (w === 'cheap' || w === 'efficient') pending.mode = w
@@ -303,9 +306,9 @@ async function resolveKey($: EngineInterface, cfg: Config): Promise<{ key: strin
   return null
 }
 
-export function jevBody(pool: string[], state: string, mode: Mode) {
+export function jevBody(pool: string[], state: string, mode: Mode, model = JEV_MODEL) {
   return {
-    model: 'jev-latest',
+    model,
     state,
     questions: {
       model: {
@@ -323,8 +326,16 @@ export function jevBody(pool: string[], state: string, mode: Mode) {
 }
 
 async function askJev($: EngineInterface, cfg: Config, key: string, state: string, mode: Mode) {
-  const body = jevBody(cfg.pool, state, mode)
-  const call = $.http.fetch(JEV_URL, {
+  const url =
+    cfg.apiUrl ||
+    (await $.env.get('JEV_API_URL')) ||
+    JEV_URL
+  const model =
+    cfg.jevModel ||
+    (await $.env.get('JEV_MODEL')) ||
+    JEV_MODEL
+  const body = jevBody(cfg.pool, state, mode, model)
+  const call = $.http.fetch(url, {
     method: 'POST',
     headers: { 'content-type': 'application/json', authorization: `Bearer ${key}` },
     body: JSON.stringify(body),
@@ -483,6 +494,8 @@ export const register: Register = (on, options) => {
 
   const cfg: Config = {
     apiKey,
+    apiUrl: String(options.apiUrl ?? '').trim(),
+    jevModel: String(options.jevModel ?? '').trim(),
     timeoutMs,
     pool: allowed.length > 0 ? allowed : Object.keys(CLAUDE),
     defaultMode,

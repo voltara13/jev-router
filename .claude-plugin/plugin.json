@@ -4,6 +4,18 @@
   "description": "Asks TypeSafe Jev before each task which Claude model and effort fit best, then runs the turn on it",
   "types": "./types/index.d.ts",
   "userConfig": {
+    "apiUrl": {
+      "type": "string",
+      "title": "Jev API URL",
+      "description": "API endpoint. Overrides JEV_API_URL when set.",
+      "required": false
+    },
+    "jevModel": {
+      "type": "string",
+      "title": "Jev Model",
+      "description": "Model ID. Overrides JEV_MODEL when set.",
+      "required": false
+    },
     "apiKey": {
       "type": "string",
       "title": "TypeSafe API key",
