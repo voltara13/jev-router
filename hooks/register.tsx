@@ -602,6 +602,7 @@ export const register: Register = (on, options) => {
   })
 
   on('turn.start', async ($, e, next) => {
+    if (e.agentId !== undefined) return next(e)
     // A continuation, or a background notification, keeps the decision of the task it continues.
     if (!(await read($, enabledAtom)) || e.text.trim() === '' || skipNext) return next(e)
     task = e.text
