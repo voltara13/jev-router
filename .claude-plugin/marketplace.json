@@ -1,5 +1,5 @@
 {
-  "name": "jev-router",
+  "name": "jev-router-mod",
   "owner": { "name": "Dominic Rico Gómez", "url": "https://github.com/dominicrico" },
   "metadata": { "description": "Claude Code mod: route each task to the right Claude model and effort with TypeSafe Jev" },
   "plugins": [
